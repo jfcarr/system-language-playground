@@ -1,0 +1,6 @@
+[package]
+name = "waitrs"
+version = "0.1.0"
+authors = ["Jim Carr <hidden-email>"]
+
+[dependencies]
