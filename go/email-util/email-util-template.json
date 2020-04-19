@@ -1,0 +1,11 @@
+{
+	"EmailConfigs": [
+		{
+			"ServerName": "imap_server_name",
+			"ServerPort": 993,
+			"UserName": "user_name_or_email_address",
+			"UserPassword": "user_password",
+			"ReportAll": false
+		}
+	]
+}

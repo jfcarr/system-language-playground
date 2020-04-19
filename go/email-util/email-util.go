@@ -1,18 +1,30 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
+	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/client"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
-	"strings"
-
-	"github.com/emersion/go-imap"
-	"github.com/emersion/go-imap/client"
 )
+
+// EmailConfigs .. List of email configurations
+type EmailConfigs struct {
+	EmailConfigs []EmailConfig `json:"EmailConfigs"`
+}
+
+// EmailConfig .. Configuration for IMAP connection and account
+type EmailConfig struct {
+	ServerName   string `json:"ServerName"`
+	ServerPort   int    `json:"ServerPort"`
+	UserName     string `json:"UserName"`
+	UserPassword string `json:"UserPassword"`
+	ReportAll    bool   `json:"ReportAll"`
+}
 
 func checkEmail(serverName string, serverPort int, userName string, userPassword string, printZeroCount bool) int {
 	// Connect to the IMAP server
@@ -77,34 +89,29 @@ func readConfig() {
 	exPath := filepath.Dir(ex)
 
 	// Full path to the config file
-	configFile := path.Join(exPath, "email-util.config")
+	configFile := path.Join(exPath, "email-util.json")
 
-	if _, err := os.Stat(configFile); err == nil {
-		// Open the file
-		file, err := os.Open(configFile)
-		checkError(err)
-		defer file.Close()
+	jsonFile, err := os.Open(configFile)
+	checkError(err)
 
-		scanner := bufio.NewScanner(file)
+	defer jsonFile.Close()
 
-		// Loop through the file entries
-		for scanner.Scan() {
-			s := strings.Split(scanner.Text(), "|")
+	// Read all the contents of the config file
+	byteValue, _ := ioutil.ReadAll(jsonFile)
 
-			serverName, serverPort, userName, userPassword, printZeroCount := s[0], s[1], s[2], s[3], s[4]
+	var emailConfigs EmailConfigs
 
-			serverPortI, err := strconv.Atoi(serverPort)
-			checkError(err)
+	// Unmarshal the json-formatted contents of the file into an array of EmailConfig structs
+	json.Unmarshal(byteValue, &emailConfigs)
 
-			printZeroCountB, err := strconv.ParseBool(printZeroCount)
-			checkError(err)
-
-			checkEmail(serverName, serverPortI, userName, userPassword, printZeroCountB)
-		}
-
-		if err := scanner.Err(); err != nil {
-			checkError(err)
-		}
+	// Walk through the list of structs and use the info to call the email checker
+	for i := 0; i < len(emailConfigs.EmailConfigs); i++ {
+		checkEmail(
+			emailConfigs.EmailConfigs[i].ServerName,
+			emailConfigs.EmailConfigs[i].ServerPort,
+			emailConfigs.EmailConfigs[i].UserName,
+			emailConfigs.EmailConfigs[i].UserPassword,
+			emailConfigs.EmailConfigs[i].ReportAll)
 	}
 }
 
